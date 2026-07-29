@@ -63,30 +63,64 @@ const services = [
   },
 ];
 
+const newLocal = "";
 const galleryItems = [
   {
+    id: "residential-deep-clean",
     title: "Residential deep clean",
     category: "Residential cleaning",
     before: "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=900&q=80",
     after: "https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&w=900&q=80",
+    images: [
+      "/images/res1.jpg",
+      "/images/res2.jpg",
+      "/images/res3.jpg",
+      "/images/res4.jpg",
+      "/images/res6.jpg",
+
+    ],
   },
   {
+    id: "workspace-refresh",
     title: "Workspace refresh",
     category: "Commercial cleaning",
     before: "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=900&q=80",
     after: "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=900&q=80",
+    images: [
+      "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=900&q=80",
+      "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=900&q=80",
+      "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=900&q=80",
+    ],
   },
   {
+    id: "airbnb-turnaround",
     title: "Airbnb turnaround",
     category: "Airbnb cleaning",
-    before: "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=900&q=80",
-    after: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=900&q=80",
+    before: "/images/airbnb-2.jpg",
+    after: "/images/airbnb-1.jpg",
+    images: [
+      "/images/airbnb-1.jpg",
+      "/images/airbnb-2.jpg",
+      "/images/air.jpg",
+    
+    ],
   },
   {
+    id: "end-of-tenancy-sparkle",
     title: "End-of-tenancy sparkle",
     category: "End-of-tenancy cleaning",
-    before: "https://images.unsplash.com/photo-1460317442991-0ec209397118?auto=format&fit=crop&w=900&q=80",
-    after: "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=900&q=80",
+    before: "/images/eot2.jpg",
+    after: "/images/eot1.jpg",
+    images: [
+      "/images/eot1.jpg",
+      "/images/eot2.jpg",
+      "/images/eot3.jpg",
+      "/images/eot4.jpg",
+
+
+    ],
+
+
   },
 ];
 
@@ -150,6 +184,12 @@ export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState("All");
   const [selectedGallery, setSelectedGallery] = useState<(typeof galleryItems)[number] | null>(null);
+  const [gallerySlideIndices, setGallerySlideIndices] = useState<Record<string, number>>(
+    galleryItems.reduce((acc, item) => {
+      acc[item.id] = 0;
+      return acc;
+    }, {} as Record<string, number>)
+  );
   const [sliderPosition, setSliderPosition] = useState(50);
   const [testimonialIndex, setTestimonialIndex] = useState(0);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
@@ -557,15 +597,71 @@ export default function Home() {
         </div>
         <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
           <div className="grid gap-4 sm:grid-cols-2">
-            {filteredGallery.map((item) => (
-              <button key={item.title} onClick={() => { setSelectedGallery(item); setSliderPosition(50); }} className="overflow-hidden rounded-[28px] border border-slate-200 bg-white text-left shadow-[0_20px_60px_-25px_rgba(15,23,42,0.2)]">
-                <img src={item.after} alt={item.title} className="h-48 w-full object-cover" />
-                <div className="p-4">
-                  <p className="text-sm font-semibold uppercase tracking-[0.22em] text-rose-700">{item.category}</p>
-                  <h3 className="mt-2 text-xl font-semibold text-slate-900">{item.title}</h3>
+            {filteredGallery.map((item) => {
+              const cardIndex = gallerySlideIndices[item.id] ?? 0;
+              return (
+                <div
+                  key={item.title}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => {
+                    setSelectedGallery(item);
+                    setSliderPosition(50);
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      setSelectedGallery(item);
+                      setSliderPosition(50);
+                    }
+                  }}
+                  className="group overflow-hidden rounded-[28px] border border-slate-200 bg-white text-left shadow-[0_20px_60px_-25px_rgba(15,23,42,0.2)] transition hover:border-rose-300"
+                >
+                  <div className="relative h-48 w-full overflow-hidden bg-slate-100">
+                    <img src={item.images[cardIndex]} alt={`${item.title} slideshow image`} className="h-full w-full object-cover transition duration-300 group-hover:scale-105" />
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setGallerySlideIndices((prev) => ({
+                          ...prev,
+                          [item.id]: (prev[item.id] - 1 + item.images.length) % item.images.length,
+                        }));
+                      }}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-white/90 p-2 text-slate-900 shadow-sm transition hover:bg-white"
+                      aria-label={`Previous image for ${item.title}`}
+                    >
+                      ‹
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setGallerySlideIndices((prev) => ({
+                          ...prev,
+                          [item.id]: (prev[item.id] + 1) % item.images.length,
+                        }));
+                      }}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-white/90 p-2 text-slate-900 shadow-sm transition hover:bg-white"
+                      aria-label={`Next image for ${item.title}`}
+                    >
+                      ›
+                    </button>
+                    <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-2">
+                      {item.images.map((_, dotIndex) => (
+                        <span
+                          key={dotIndex}
+                          className={`h-2.5 w-2.5 rounded-full ${dotIndex === cardIndex ? "bg-rose-700" : "bg-white/80"}`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                  <div className="p-4">
+                    <p className="text-sm font-semibold uppercase tracking-[0.22em] text-rose-700">{item.category}</p>
+                    <h3 className="mt-2 text-xl font-semibold text-slate-900">{item.title}</h3>
+                  </div>
                 </div>
-              </button>
-            ))}
+              );
+            })}
           </div>
           <div className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-[0_20px_60px_-25px_rgba(15,23,42,0.2)]">
             {selectedGallery ? (

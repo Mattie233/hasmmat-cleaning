@@ -3,8 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "convert:heic": "node scripts/convert-heic.js",
+    "dev": "npm run convert:heic && next dev",
+    "build": "npm run convert:heic && next build",
     "start": "next start",
     "lint": "eslint"
   },
