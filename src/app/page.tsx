@@ -723,7 +723,7 @@ export default function Home() {
             {selectedGallery ? (
               <>
                 <div className="overflow-hidden rounded-[24px] bg-slate-100">
-                    <div className="relative h-[420px] w-full" style={{ touchAction: 'none' }}>
+                    <div className="relative h-[260px] sm:h-[420px] w-full" style={{ touchAction: 'none' }}>
                     <img src={selectedGallery.before} alt={`${selectedGallery.title} before`} className="absolute inset-0 h-full w-full object-cover" />
                     <div className="absolute inset-0 overflow-hidden" style={{ width: `${sliderPosition}%` }}>
                       <img src={selectedGallery.after} alt={`${selectedGallery.title} after`} className="h-full w-full object-cover" />

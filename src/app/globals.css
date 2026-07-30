@@ -53,3 +53,20 @@ img, video, svg {
 input, textarea, select, button {
   font-size: 16px;
 }
+
+/* Mobile-specific tweaks */
+@media (max-width: 640px) {
+  h1 {
+    font-size: 1.9rem;
+    line-height: 1.05;
+  }
+
+  .max-w-7xl {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .rounded-[32px] {
+    border-radius: 20px;
+  }
+}
