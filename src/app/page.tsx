@@ -650,9 +650,13 @@ export default function Home() {
                   role="button"
                   tabIndex={0}
                   onClick={() => {
-                    setSelectedGallery(item);
-                    setSliderPosition(50);
-                  }}
+                      setSelectedGallery(item);
+                      setSliderPosition(50);
+                    }}
+                  onPointerDown={() => {
+                      setSelectedGallery(item);
+                      setSliderPosition(50);
+                    }}
                   onKeyDown={(event) => {
                     if (event.key === "Enter" || event.key === " ") {
                       setSelectedGallery(item);
@@ -672,6 +676,10 @@ export default function Home() {
                           [item.id]: (prev[item.id] - 1 + item.images.length) % item.images.length,
                         }));
                       }}
+                      onPointerDown={(event) => {
+                        // prevent parent handlers on touch devices
+                        event.stopPropagation();
+                      }}
                       className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-white/90 p-2 text-slate-900 shadow-sm transition hover:bg-white"
                       aria-label={`Previous image for ${item.title}`}
                     >
@@ -685,6 +693,9 @@ export default function Home() {
                           ...prev,
                           [item.id]: (prev[item.id] + 1) % item.images.length,
                         }));
+                      }}
+                      onPointerDown={(event) => {
+                        event.stopPropagation();
                       }}
                       className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-white/90 p-2 text-slate-900 shadow-sm transition hover:bg-white"
                       aria-label={`Next image for ${item.title}`}
@@ -712,7 +723,7 @@ export default function Home() {
             {selectedGallery ? (
               <>
                 <div className="overflow-hidden rounded-[24px] bg-slate-100">
-                  <div className="relative h-[420px] w-full">
+                    <div className="relative h-[420px] w-full" style={{ touchAction: 'none' }}>
                     <img src={selectedGallery.before} alt={`${selectedGallery.title} before`} className="absolute inset-0 h-full w-full object-cover" />
                     <div className="absolute inset-0 overflow-hidden" style={{ width: `${sliderPosition}%` }}>
                       <img src={selectedGallery.after} alt={`${selectedGallery.title} after`} className="h-full w-full object-cover" />
