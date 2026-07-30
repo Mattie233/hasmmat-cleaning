@@ -680,7 +680,7 @@ export default function Home() {
                         // prevent parent handlers on touch devices
                         event.stopPropagation();
                       }}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-white/90 p-2 text-slate-900 shadow-sm transition hover:bg-white"
+                      className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-white/90 p-3 text-slate-900 shadow-sm transition hover:bg-white z-20"
                       aria-label={`Previous image for ${item.title}`}
                     >
                       ‹
@@ -697,7 +697,7 @@ export default function Home() {
                       onPointerDown={(event) => {
                         event.stopPropagation();
                       }}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-white/90 p-2 text-slate-900 shadow-sm transition hover:bg-white"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-white/90 p-3 text-slate-900 shadow-sm transition hover:bg-white z-20"
                       aria-label={`Next image for ${item.title}`}
                     >
                       ›
@@ -706,7 +706,11 @@ export default function Home() {
                       {item.images.map((_, dotIndex) => (
                         <span
                           key={dotIndex}
-                          className={`h-2.5 w-2.5 rounded-full ${dotIndex === cardIndex ? "bg-rose-700" : "bg-white/80"}`}
+                          role="button"
+                          tabIndex={0}
+                          onClick={(e) => { e.stopPropagation(); setGallerySlideIndices((prev) => ({ ...prev, [item.id]: dotIndex })); }}
+                          onPointerDown={(e) => e.stopPropagation()}
+                          className={`h-3 w-3 rounded-full ${dotIndex === cardIndex ? "bg-rose-700" : "bg-white/80"}`}
                         />
                       ))}
                     </div>
@@ -723,7 +727,7 @@ export default function Home() {
             {selectedGallery ? (
               <>
                 <div className="overflow-hidden rounded-[24px] bg-slate-100">
-                    <div className="relative h-[260px] sm:h-[420px] w-full" style={{ touchAction: 'none' }}>
+                    <div className="relative h-[260px] sm:h-[420px] w-full" style={{ touchAction: 'manipulation' }}>
                     <img src={selectedGallery.before} alt={`${selectedGallery.title} before`} className="absolute inset-0 h-full w-full object-cover" />
                     <div className="absolute inset-0 overflow-hidden" style={{ width: `${sliderPosition}%` }}>
                       <img src={selectedGallery.after} alt={`${selectedGallery.title} after`} className="h-full w-full object-cover" />
