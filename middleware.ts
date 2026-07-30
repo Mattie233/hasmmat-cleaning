@@ -12,7 +12,12 @@ export function middleware(req: NextRequest) {
 
   // Apply rate limit to API routes only
   if (url.pathname.startsWith('/api')) {
-    const ip = req.ip ?? req.headers.get('x-forwarded-for') ?? 'unknown';
+    const forwardedFor = req.headers.get('x-forwarded-for');
+
+    const ip =
+      forwardedFor?.split(',')[0]?.trim() ||
+      req.headers.get('x-real-ip') ||
+      'unknown';
     const now = Date.now();
     const entry = ipMap.get(ip);
 
