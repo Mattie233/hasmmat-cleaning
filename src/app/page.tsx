@@ -69,8 +69,8 @@ const galleryItems = [
     id: "residential-deep-clean",
     title: "Residential deep clean",
     category: "Residential cleaning",
-    before: "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=900&q=80",
-    after: "https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&w=900&q=80",
+    before: "/images/res7.jpg",
+    after: "/images/res8.jpg",
     images: [
       "/images/res1.jpg",
       "/images/res2.jpg",
@@ -160,11 +160,31 @@ const testimonials = [
 ];
 
 const faqs = [
-  "Do you provide cleaning supplies?",
-  "Are you insured?",
-  "Can I book recurring cleaning?",
-  "Do you clean commercial properties?",
-  "Do you offer Airbnb turnaround cleaning?",
+  {
+    question: "Do you provide cleaning supplies?",
+    answer:
+      "Yes — our teams bring standard cleaning supplies and equipment. If you prefer we use yours, let us know when booking.",
+  },
+  {
+    question: "Are you insured?",
+    answer:
+      "Yes — we carry public liability and employer's liability insurance. Certificates can be provided on request.",
+  },
+  {
+    question: "Can I book recurring cleaning?",
+    answer:
+      "Yes — we offer weekly, fortnightly, monthly and one-off cleans. Contact us to set up a recurring schedule that suits you.",
+  },
+  {
+    question: "Do you clean commercial properties?",
+    answer:
+      "Yes — we provide office, retail and gym cleaning with flexible scheduling and commercial-grade processes.",
+  },
+  {
+    question: "Do you offer Airbnb turnaround cleaning?",
+    answer:
+      "Yes — we offer quick turnovers, linen change and guest-ready checks. For same-day or high-frequency turnovers, contact us to confirm availability.",
+  },
 ];
 
 const serviceAreas = [
@@ -372,10 +392,10 @@ export default function Home() {
               </div>
               <div className="mt-8 grid gap-4 sm:grid-cols-2">
                 {[
-                  { label: "Properties cleaned", value: "200+" },
+                  { label: "Properties cleaned", value: "50+" },
                   { label: "Repeat customers", value: "96%" },
-                  { label: "Commercial clients", value: "45+" },
-                  { label: "Areas covered", value: "30+" },
+                  { label: "Commercial clients", value: "2" },
+                  { label: "Areas covered", value: "10+" },
                 ].map((stat) => (
                   <div key={stat.label} className="rounded-2xl border border-white/10 bg-white/5 p-4">
                     <p className="text-3xl font-semibold text-white">{stat.value}</p>
@@ -716,10 +736,10 @@ export default function Home() {
           <div className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_-25px_rgba(15,23,42,0.2)]">
             <div className="grid gap-4 sm:grid-cols-2">
               {[
-                { label: "Properties cleaned", value: "200+" },
+                { label: "Properties cleaned", value: "50+" },
                 { label: "Repeat customers", value: "96%" },
-                { label: "Commercial clients", value: "45+" },
-                { label: "Areas covered", value: "30+" },
+                { label: "Commercial clients", value: "2" },
+                { label: "Areas covered", value: "10+" },
               ].map((stat) => (
                 <div key={stat.label} className="rounded-2xl bg-slate-50 p-5">
                   <p className="text-3xl font-semibold text-slate-900">{stat.value}</p>
@@ -838,7 +858,7 @@ export default function Home() {
             <p className="text-sm font-semibold uppercase tracking-[0.3em] text-rose-700">Contact</p>
             <h2 className="mt-2 text-3xl font-semibold text-slate-900 sm:text-4xl">Book your free consultation</h2>
             <div className="mt-6 space-y-3 text-slate-700">
-              <p className="flex items-center gap-3"><Phone size={18} className="text-rose-600" /> +44 7700 000000</p>
+              <p className="flex items-center gap-3"><Phone size={18} className="text-rose-600" /> 07983818344</p>
               <p className="flex items-center gap-3"><MessageCircle size={18} className="text-rose-600" /> Hasmmatcleaningservice@gmail.com</p>
               <p className="flex items-center gap-3"><Clock3 size={18} className="text-rose-600" /> Mon–Sat • 8am–6pm</p>
             </div>
@@ -854,7 +874,7 @@ export default function Home() {
             <h2 className="mt-2 text-3xl font-semibold text-slate-900 sm:text-4xl">Tell us about your property and we will follow up promptly</h2>
             <p className="mt-4 leading-8 text-slate-600">We respond quickly to enquiries, provide honest guidance and never confirm availability until the request has been reviewed by our team.</p>
             <div className="mt-6 space-y-3 text-slate-700">
-              <p className="flex items-center gap-3"><Phone size={18} className="text-rose-600" /> +44 7700 000000</p>
+              <p className="flex items-center gap-3"><Phone size={18} className="text-rose-600" /> 07983818344</p>
               <p className="flex items-center gap-3"><MessageCircle size={18} className="text-rose-600" /> Hasmmatcleaningservice@gmail.com</p>
               <p className="flex items-center gap-3"><Clock3 size={18} className="text-rose-600" /> Open 7 days a week for estimates and support</p>
             </div>
@@ -908,12 +928,12 @@ export default function Home() {
           </div>
           <div className="space-y-3">
             {faqs.map((faq, index) => (
-              <div key={faq} className="rounded-2xl border border-slate-200 bg-slate-50">
+              <div key={faq.question} className="rounded-2xl border border-slate-200 bg-slate-50">
                 <button className="flex w-full items-center justify-between px-5 py-4 text-left" onClick={() => setOpenFaq(openFaq === index ? null : index)}>
-                  <span className="font-semibold text-slate-900">{faq}</span>
+                  <span className="font-semibold text-slate-900">{faq.question}</span>
                   <ChevronDown className={`transition ${openFaq === index ? "rotate-180" : ""}`} />
                 </button>
-                {openFaq === index ? <p className="px-5 pb-5 text-slate-600">We tailor every cleaning plan around your property, schedule and preferred level of detail, while staying transparent about pricing and service scope.</p> : null}
+                {openFaq === index ? <p className="px-5 pb-5 text-slate-600">{faq.answer}</p> : null}
               </div>
             ))}
           </div>
@@ -947,7 +967,7 @@ export default function Home() {
             <h3 className="text-sm font-semibold uppercase tracking-[0.3em] text-white">Contact</h3>
             <div className="mt-4 space-y-2 text-sm text-slate-400">
               <p>Hasmmatcleaningservice@gmail.com</p>
-              <p>+44 7700 000000</p>
+              <p>07983818344</p>
               <p>Leeds service area</p>
             </div>
           </div>
