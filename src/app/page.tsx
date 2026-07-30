@@ -609,22 +609,14 @@ export default function Home() {
                 </div>
               ) : null}
 
-              <div className="mt-5 flex items-center justify-between gap-3">
-                <div className="text-sm text-rose-100">
-                  Estimated range: <span className="font-semibold">{priceEstimate}</span>
-                </div>
-                <div className="flex gap-2">
-                  <button type="button" onClick={() => setQuoteStep((step) => Math.max(0, step - 1))} className="rounded-full border border-white/20 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10">
-                    Back
-                  </button>
+              <div className="mt-5 flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div className="text-sm text-rose-100">Estimated range: <span className="font-semibold">{priceEstimate}</span></div>
+                <div className="flex w-full sm:w-auto gap-2">
+                  <button type="button" onClick={() => setQuoteStep((step) => Math.max(0, step - 1))} className="w-full sm:w-auto rounded-full border border-white/20 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10">Back</button>
                   {quoteStep < 3 ? (
-                    <button type="button" onClick={() => setQuoteStep((step) => Math.min(3, step + 1))} className="rounded-full bg-rose-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-400">
-                      Continue
-                    </button>
+                    <button type="button" onClick={() => setQuoteStep((step) => Math.min(3, step + 1))} className="w-full sm:w-auto rounded-full bg-rose-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-400">Continue</button>
                   ) : (
-                    <button type="submit" className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-rose-900 transition hover:bg-rose-50">
-                      Request Quote
-                    </button>
+                    <button type="submit" className="w-full sm:w-auto rounded-full bg-white px-4 py-2 text-sm font-semibold text-rose-900 transition hover:bg-rose-50">Request Quote</button>
                   )}
                 </div>
               </div>
@@ -669,7 +661,7 @@ export default function Home() {
                   }}
                   className="group overflow-hidden rounded-[28px] border border-slate-200 bg-white text-left shadow-[0_20px_60px_-25px_rgba(15,23,42,0.2)] transition hover:border-rose-300"
                 >
-                  <div className="relative h-48 w-full overflow-hidden bg-slate-100">
+                  <div className="relative h-48 sm:h-56 md:h-64 w-full overflow-hidden bg-slate-100">
                     <img src={item.images[cardIndex]} alt={`${item.title} slideshow image`} className="h-full w-full object-cover transition duration-300 group-hover:scale-105" />
                     <button
                       type="button"
@@ -946,7 +938,7 @@ export default function Home() {
               <span className="mb-2 block font-medium">Message</span>
               <textarea className="min-h-32 w-full rounded-2xl border border-white/10 bg-white/10 px-3 py-3 text-white placeholder:text-slate-400" value={contactForm.message} onChange={(event) => setContactForm({ ...contactForm, message: event.target.value })} placeholder="Tell us more about your property and cleaning requirements." />
             </label>
-            <button type="submit" className="mt-6 rounded-full bg-rose-500 px-5 py-3 font-semibold text-white transition hover:bg-rose-400">Submit enquiry</button>
+            <button type="submit" className="mt-6 w-full sm:w-auto rounded-full bg-rose-500 px-5 py-3 font-semibold text-white transition hover:bg-rose-400">Submit enquiry</button>
             {contactStatus === "success" ? <p className="mt-3 rounded-2xl border border-rose-400/20 bg-rose-500/10 p-3 text-sm text-rose-200">Thanks for your enquiry. Our team will follow up shortly.</p> : null}
             {contactStatus === "error" ? <p className="mt-3 rounded-2xl border border-rose-400/40 bg-rose-500/10 p-3 text-sm text-rose-200">Please complete the required details before sending.</p> : null}
           </form>
@@ -973,7 +965,7 @@ export default function Home() {
         </div>
       </section>
 
-      <button className="fixed bottom-24 right-4 z-40 rounded-full bg-rose-600 p-4 text-white shadow-xl shadow-rose-900/20 lg:right-8">
+      <button className="hidden lg:inline-flex fixed bottom-24 right-4 z-40 rounded-full bg-rose-600 p-4 text-white shadow-xl shadow-rose-900/20 lg:right-8">
         <MessageCircle size={22} />
       </button>
       <Link href="#contact" className="fixed bottom-6 right-4 z-40 rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-xl lg:right-8">
