@@ -1,6 +1,6 @@
 import type { NextConfig } from "next";
 
-const ContentSecurityPolicy = `default-src 'self'; img-src 'self' data: https:; connect-src 'self' https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; style-src 'self' 'unsafe-inline' https:; font-src 'self' data:;`;
+const ContentSecurityPolicy = `default-src 'self'; img-src 'self' data: https:; connect-src 'self' https:; script-src 'self' https:; style-src 'self' 'unsafe-inline' https:; font-src 'self' data:;`;
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
@@ -12,7 +12,7 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: 'Strict-Transport-Security',
-            value: 'max-age=63072000; includeSubDomains; preload',
+            value: 'max-age=31536000; includeSubDomains; preload',
           },
           {
             key: 'X-Frame-Options',
