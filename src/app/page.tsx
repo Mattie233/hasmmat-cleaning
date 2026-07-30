@@ -259,13 +259,46 @@ export default function Home() {
     setQuoteStatus("success");
   };
 
-  const handleContactSubmit = (event: FormEvent) => {
+  const handleContactSubmit = async (event: FormEvent) => {
     event.preventDefault();
     if (!contactForm.name || !contactForm.email || !contactForm.message) {
       setContactStatus("error");
       return;
     }
-    setContactStatus("success");
+
+    const endpoint = process.env.NEXT_PUBLIC_GETFORM_ENDPOINT;
+    if (!endpoint) {
+      console.error('Getform endpoint not configured: set NEXT_PUBLIC_GETFORM_ENDPOINT');
+      setContactStatus('error');
+      return;
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append('name', contactForm.name);
+      formData.append('email', contactForm.email);
+      formData.append('phone', contactForm.phone);
+      formData.append('propertyType', contactForm.propertyType);
+      formData.append('service', contactForm.service);
+      formData.append('date', contactForm.date);
+      formData.append('message', contactForm.message);
+
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (res.ok) {
+        setContactStatus('success');
+        setContactForm({ name: '', email: '', phone: '', propertyType: 'Residential', service: 'Regular cleaning', date: '', message: '' });
+      } else {
+        console.error('Getform submission failed', await res.text());
+        setContactStatus('error');
+      }
+    } catch (err) {
+      console.error('Getform error', err);
+      setContactStatus('error');
+    }
   };
 
   const handlePostcodeCheck = (event: FormEvent) => {
