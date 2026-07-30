@@ -66,7 +66,7 @@ input, textarea, select, button {
     padding-right: 1rem;
   }
 
-  .rounded-[32px] {
+  .rounded-\[32px\] {
     border-radius: 20px;
   }
 }
