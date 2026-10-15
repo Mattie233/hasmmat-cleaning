@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import Logo from "../components/Logo";
-import { useMemo, useState, type FormEvent } from "react";
-import { motion } from "framer-motion";
+import { Fragment, useMemo, useState, type FormEvent } from "react";
+import EnquiryForm, { type EnquiryPrefill, type QuoteDetails } from "../components/public/EnquiryForm";
+import PublicFooter from "../components/public/PublicFooter";
+import PublicHeader from "../components/public/PublicHeader";
 import {
   ArrowRight,
   Bath,
@@ -16,8 +17,6 @@ import {
   Clock3,
   House,
   MessageCircle,
-  Phone,
-  ShieldCheck,
   Sparkles,
   Star,
   Store,
@@ -63,6 +62,22 @@ const services = [
   },
 ];
 
+const homeStats = [
+  { label: "Properties cleaned", value: "50+" },
+  { label: "Repeat customers", value: "96%" },
+  { label: "Commercial clients", value: "2" },
+  { label: "Areas covered", value: "10+" },
+];
+
+const serviceEnquiryDefaults: Record<string, EnquiryPrefill> = {
+  "Residential Cleaning": { cleaningService: "Regular residential cleaning", propertyType: "House" },
+  "Commercial Cleaning": { cleaningService: "Commercial cleaning", propertyType: "Office" },
+  "Airbnb & Short-Let": { cleaningService: "Airbnb and short-let cleaning", propertyType: "Apartment" },
+  "Deep Cleaning": { cleaningService: "Deep cleaning", propertyType: "House" },
+  "End-of-Tenancy": { cleaningService: "End-of-tenancy cleaning", propertyType: "Flat" },
+  "Office Cleaning": { cleaningService: "Office cleaning", propertyType: "Office" },
+};
+
 const newLocal = "";
 const galleryItems = [
   {
@@ -84,12 +99,11 @@ const galleryItems = [
     id: "workspace-refresh",
     title: "Workspace refresh",
     category: "Commercial cleaning",
-    before: "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=900&q=80",
-    after: "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=900&q=80",
     images: [
-      "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=900&q=80",
-      "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=900&q=80",
-      "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=900&q=80",
+      "/images/commercial-1.jpg",
+      "/images/commercial-2.jpg",
+      "/images/commercial-3.jpg",
+      "/images/commercial-4.jpg",
     ],
   },
   {
@@ -102,7 +116,12 @@ const galleryItems = [
       "/images/airbnb-1.jpg",
       "/images/airbnb-2.jpg",
       "/images/air.jpg",
-    
+      "/images/image0.jpeg",
+      "/images/image1.jpeg",
+      "/images/image7.jpeg",
+      "/images/image10.jpeg",
+      "/images/IMAGE11.jpg",
+      "/images/Image12.jpg",
     ],
   },
   {
@@ -200,47 +219,36 @@ const serviceAreas = [
   "White Rose",
 ];
 
+const postcodeServiceAreas = [
+  { district: "LS11", areas: ["Beeston", "Holbeck", "White Rose"] },
+  { district: "LS12", areas: ["Armley"] },
+  { district: "LS13", areas: ["Bramley"] },
+  { district: "LS16", areas: ["Cookridge"] },
+  { district: "WF17", areas: ["Batley"] },
+  { district: "YO8", areas: ["Selby"] },
+  { district: "LS1", areas: ["Leeds City Centre"] },
+  { district: "LS2", areas: ["Leeds City Centre"] },
+  { district: "LS6", areas: ["Headingley"] },
+];
+
 export default function Home() {
-  const [menuOpen, setMenuOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState("All");
-  const [selectedGallery, setSelectedGallery] = useState<(typeof galleryItems)[number] | null>(null);
-  const [gallerySlideIndices, setGallerySlideIndices] = useState<Record<string, number>>(
-    galleryItems.reduce((acc, item) => {
-      acc[item.id] = 0;
-      return acc;
-    }, {} as Record<string, number>)
-  );
-  const [sliderPosition, setSliderPosition] = useState(50);
   const [testimonialIndex, setTestimonialIndex] = useState(0);
-  const [openFaq, setOpenFaq] = useState<number | null>(0);
   const [postcode, setPostcode] = useState("");
   const [postcodeMessage, setPostcodeMessage] = useState("Enter your postcode to see whether we cover your area.");
-  const [contactForm, setContactForm] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    propertyType: "Residential",
-    service: "Regular cleaning",
-    date: "",
-    message: "",
-  });
-  const [contactStatus, setContactStatus] = useState<"idle" | "success" | "error">("idle");
+  const [quotePrefill, setQuotePrefill] = useState<EnquiryPrefill>();
+  const [quotePrefillVersion, setQuotePrefillVersion] = useState(0);
   const [quoteStep, setQuoteStep] = useState(0);
   const [quoteData, setQuoteData] = useState({
     serviceType: "Residential",
     propertyType: "House",
-    rooms: "3 bedrooms, 2 bathrooms",
+    bedrooms: "3",
+    bathrooms: "2",
     size: "Medium",
     cleanType: "Regular cleaning",
-    schedule: "One-off",
-    frequency: "Weekly",
+    frequency: "One-off",
     addOns: [] as string[],
-    date: "",
-    name: "",
-    email: "",
-    phone: "",
   });
-  const [quoteStatus, setQuoteStatus] = useState<"idle" | "success">("idle");
 
   const filteredGallery = useMemo(() => {
     if (activeFilter === "All") return galleryItems;
@@ -250,65 +258,55 @@ export default function Home() {
   const priceEstimate = useMemo(() => {
     const base = quoteData.serviceType === "Commercial" ? 180 : 140;
     const sizeFactor = quoteData.size === "Large" ? 1.4 : quoteData.size === "Medium" ? 1.1 : 1;
-    const roomsFactor = quoteData.rooms.includes("bedroom") ? 1.05 : 1;
+    const roomsFactor = quoteData.serviceType === "Residential" && Number(quoteData.bedrooms) > 0 ? 1.05 : 1;
     return `£${Math.round(base * sizeFactor * roomsFactor)}–£${Math.round(base * sizeFactor * roomsFactor + 140)}`;
   }, [quoteData]);
 
   const handleQuoteSubmit = (event: FormEvent) => {
     event.preventDefault();
-    setQuoteStatus("success");
-  };
-
-  const handleContactSubmit = async (event: FormEvent) => {
-    event.preventDefault();
-    if (!contactForm.name || !contactForm.email || !contactForm.message) {
-      setContactStatus("error");
-      return;
-    }
-
-    const endpoint = process.env.NEXT_PUBLIC_GETFORM_ENDPOINT;
-    if (!endpoint) {
-      console.error('Getform endpoint not configured: set NEXT_PUBLIC_GETFORM_ENDPOINT');
-      setContactStatus('error');
-      return;
-    }
-
-    try {
-      const formData = new FormData();
-      formData.append('name', contactForm.name);
-      formData.append('email', contactForm.email);
-      formData.append('phone', contactForm.phone);
-      formData.append('propertyType', contactForm.propertyType);
-      formData.append('service', contactForm.service);
-      formData.append('date', contactForm.date);
-      formData.append('message', contactForm.message);
-
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (res.ok) {
-        setContactStatus('success');
-        setContactForm({ name: '', email: '', phone: '', propertyType: 'Residential', service: 'Regular cleaning', date: '', message: '' });
-      } else {
-        console.error('Getform submission failed', await res.text());
-        setContactStatus('error');
-      }
-    } catch (err) {
-      console.error('Getform error', err);
-      setContactStatus('error');
-    }
+    const cleaningService = quoteData.serviceType === "Commercial"
+      ? quoteData.propertyType === "Office" ? "Office cleaning" : "Commercial cleaning"
+      : quoteData.cleanType === "Regular cleaning" ? "Regular residential cleaning"
+        : quoteData.cleanType === "End-of-tenancy" ? "End-of-tenancy cleaning" : "Deep cleaning";
+    const quoteDetails: QuoteDetails = {
+      serviceType: quoteData.serviceType === "Commercial" ? "Commercial" : "Residential",
+      propertyType: quoteData.propertyType,
+      bedrooms: quoteData.serviceType === "Residential" ? Number(quoteData.bedrooms) || 0 : undefined,
+      bathrooms: quoteData.serviceType === "Residential" ? Number(quoteData.bathrooms) || 0 : undefined,
+      size: quoteData.size as QuoteDetails["size"],
+      cleaningService,
+      frequency: quoteData.frequency as QuoteDetails["frequency"],
+      addOns: quoteData.addOns,
+      estimatedRange: priceEstimate,
+    };
+    setQuotePrefill({
+      cleaningService,
+      propertyType: quoteData.propertyType,
+      bedrooms: quoteData.bedrooms,
+      bathrooms: quoteData.bathrooms,
+      frequency: quoteData.frequency,
+      message: quoteData.addOns.length ? `Additional services: ${quoteData.addOns.join(", ")}` : "",
+      quoteDetails,
+    });
+    setQuotePrefillVersion((version) => version + 1);
+    window.setTimeout(() => document.getElementById("contact")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
   };
 
   const handlePostcodeCheck = (event: FormEvent) => {
     event.preventDefault();
-    const normalized = postcode.toUpperCase().replace(/\s/g, "");
-    if (normalized.includes("LS") || normalized.includes("WF") || normalized.includes("YO")) {
-      setPostcodeMessage("We cover your area and would be happy to help with your booking.");
+    const normalized = postcode.trim().toUpperCase().replace(/\s/g, "");
+    if (!/^(?:GIR0AA|[A-Z]{1,2}\d[A-Z\d]?\d[A-Z]{2})$/.test(normalized)) {
+      setPostcodeMessage("Please enter a valid UK postcode, for example LS1 4AB.");
       return;
     }
-    setPostcodeMessage("We are expanding quickly, but please contact us to confirm availability in your postcode.");
+
+    const matchingArea = postcodeServiceAreas.find(({ district }) => normalized.startsWith(district));
+    if (matchingArea) {
+      setPostcodeMessage(`We list service in ${matchingArea.areas.join(", ")} (${matchingArea.district}). Contact us to confirm availability at your exact address.`);
+      return;
+    }
+
+    setPostcodeMessage("This postcode is outside the districts listed on our site. Please contact us to confirm whether we can serve your address.");
   };
 
   const nextTestimonial = () => {
@@ -327,121 +325,48 @@ export default function Home() {
   ];
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(137,179,151,0.16),_transparent_55%)] text-slate-900">
-      <nav className="sticky top-0 z-50 border-b border-slate-200/70 bg-white/85 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-          <Link href="/" className="inline-flex items-center gap-3">
-            <Logo />
-          </Link>
-          <div className="hidden items-center gap-6 text-sm font-medium text-slate-700 lg:flex">
-            {[
-              ["Home", "/"],
-              ["Residential", "/residential"],
-              ["Commercial", "/commercial"],
-              ["About", "#about"],
-              ["Reviews", "#reviews"],
-              ["Contact", "#contact"],
-            ].map(([label, href]) => (
-              <Link key={label} href={href} className="transition hover:text-rose-700">
-                {label}
-              </Link>
-            ))}
-          </div>
-          <Link href="#contact" className="hidden rounded-full bg-rose-800 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-rose-900/20 transition hover:bg-rose-700 lg:inline-flex">
-            Get a Free Quote
-          </Link>
-          <button className="rounded-full border border-slate-300 p-2 lg:hidden" onClick={() => setMenuOpen((open) => !open)}>
-            <span className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-700">Menu</span>
-          </button>
-        </div>
-        {menuOpen ? (
-          <div className="border-t border-slate-200 bg-white/95 px-4 py-4 lg:hidden">
-            <div className="flex flex-col gap-3 text-sm font-medium text-slate-700">
-              {[
-                ["Home", "/"],
-                ["Residential Cleaning", "/residential"],
-                ["Commercial Cleaning", "/commercial"],
-                ["About Us", "#about"],
-                ["Service Areas", "#areas"],
-                ["Reviews", "#reviews"],
-                ["Contact", "#contact"],
-              ].map(([label, href]) => (
-                <Link key={label} href={href} className="rounded-full border border-slate-200 px-3 py-2 transition hover:border-rose-400" onClick={() => setMenuOpen(false)}>
-                  {label}
-                </Link>
-              ))}
-            </div>
-          </div>
-        ) : null}
-      </nav>
+    <>
+      <PublicHeader />
+      <main className="public-page min-h-screen bg-white text-slate-900">
 
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=1600&q=80')] bg-cover bg-center" />
         <div className="absolute inset-0 bg-gradient-to-r from-slate-950/80 via-slate-900/70 to-rose-950/70" />
-        <div className="relative mx-auto grid max-w-7xl gap-10 px-4 py-24 sm:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:px-8 lg:py-28">
-          <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="max-w-2xl">
-            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium text-rose-100 backdrop-blur">
-              <Sparkles size={16} /> Premium cleaning for Leeds and surrounding areas
-            </div>
-            <h1 className="text-4xl font-semibold leading-tight text-white sm:text-5xl lg:text-6xl">
+        <div className="relative mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-14">
+          <div className="max-w-3xl">
+            <p className="mb-3 inline-flex items-center gap-2 text-sm font-medium text-rose-100">
+              <Sparkles aria-hidden="true" size={16} /> Cleaning for Leeds homes and businesses
+            </p>
+            <h1 className="text-3xl font-semibold leading-tight text-white sm:text-4xl lg:text-5xl">
               Professional Cleaning for Homes and Businesses
             </h1>
-            <p className="mt-6 max-w-xl text-lg leading-8 text-slate-200">
-              Reliable residential and commercial cleaning services tailored to your property, schedule and requirements.
+            <p className="mt-4 max-w-2xl text-base leading-7 text-slate-200 sm:text-lg">
+              Residential, commercial and short-let cleaning shaped around your property and schedule.
             </p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Link href="#contact" className="inline-flex items-center justify-center rounded-full bg-rose-500 px-6 py-3.5 font-semibold text-white shadow-lg shadow-rose-400/20 transition hover:bg-rose-400">
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Link href="#contact" className="inline-flex min-h-12 items-center justify-center rounded-full bg-rose-500 px-5 py-3 font-semibold text-white transition hover:bg-rose-400">
                 Get a Free Quote <ArrowRight className="ml-2" size={18} />
               </Link>
-              <Link href="#services" className="inline-flex items-center justify-center rounded-full border border-white/20 bg-white/10 px-6 py-3.5 font-semibold text-white backdrop-blur transition hover:bg-white/20">
+              <Link href="#services" className="inline-flex min-h-12 items-center justify-center rounded-full border border-white/30 bg-white/10 px-5 py-3 font-semibold text-white transition hover:bg-white/20">
                 View Our Services
               </Link>
             </div>
-            <div className="mt-8 flex flex-wrap gap-3 text-sm text-rose-50">
-              {[
-                "Fully Insured",
-                "Reliable Cleaners",
-                "Flexible Scheduling",
-                "Residential and Commercial",
-                "Leeds and Surrounding Areas",
-              ].map((item) => (
-                <div key={item} className="rounded-full border border-white/20 bg-white/10 px-3 py-2 backdrop-blur">
-                  {item}
-                </div>
-              ))}
-            </div>
-          </motion.div>
-
-          <motion.div initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.7 }} className="rounded-[32px] border border-white/20 bg-white/10 p-5 shadow-2xl backdrop-blur-xl">
-            <div className="rounded-[28px] bg-slate-950/70 p-6 text-white">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm uppercase tracking-[0.3em] text-rose-200">Trusted by local clients</p>
-                  <h2 className="mt-2 text-2xl font-semibold">Your property, polished to perfection</h2>
-                </div>
-                <div className="rounded-full border border-rose-400/30 bg-rose-400/10 p-3">
-                  <ShieldCheck size={24} className="text-rose-300" />
-                </div>
-              </div>
-              <div className="mt-8 grid gap-4 sm:grid-cols-2">
-                {[
-                  { label: "Properties cleaned", value: "50+" },
-                  { label: "Repeat customers", value: "96%" },
-                  { label: "Commercial clients", value: "2" },
-                  { label: "Areas covered", value: "10+" },
-                ].map((stat) => (
-                  <div key={stat.label} className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                    <p className="text-3xl font-semibold text-white">{stat.value}</p>
-                    <p className="mt-1 text-sm text-slate-300">{stat.label}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </motion.div>
+          </div>
         </div>
       </section>
 
-      <section id="services" className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
+      <section aria-label="Business statistics" className="border-b border-slate-200 bg-white">
+        <div className="mx-auto grid max-w-7xl grid-cols-2 divide-x divide-y divide-slate-200 px-4 sm:px-6 md:grid-cols-4 md:divide-y-0 lg:px-8">
+          {homeStats.map((stat) => (
+            <div key={stat.label} className="px-3 py-4 text-center sm:py-5">
+              <p className="text-2xl font-semibold text-slate-900">{stat.value}</p>
+              <p className="mt-1 text-xs text-slate-600 sm:text-sm">{stat.label}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section id="services" className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
         <div className="mb-10 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.3em] text-rose-700">Our services</p>
@@ -454,15 +379,11 @@ export default function Home() {
           </p>
         </div>
         <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-          {services.map((service, index) => {
+          {services.map((service) => {
             const Icon = service.icon;
             return (
-              <motion.article
+              <article
                 key={service.title}
-                initial={{ opacity: 0, y: 18 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, amount: 0.2 }}
-                transition={{ duration: 0.4, delay: index * 0.05 }}
                 className="group rounded-[28px] border border-slate-200 bg-white p-7 shadow-[0_20px_60px_-25px_rgba(15,23,42,0.25)] transition hover:-translate-y-1 hover:shadow-[0_30px_70px_-25px_rgba(15,23,42,0.35)]"
               >
                 <div className="mb-6 flex items-center justify-between">
@@ -476,14 +397,21 @@ export default function Home() {
                 <h3 className="text-2xl font-semibold text-slate-900">{service.title}</h3>
                 <p className="mt-3 text-base leading-7 text-slate-600">{service.description}</p>
                 <div className="mt-6 flex gap-3">
-                  <Link href="#contact" className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-700">
+                  <Link
+                    href="#contact"
+                    onClick={() => {
+                      setQuotePrefill(serviceEnquiryDefaults[service.title]);
+                      setQuotePrefillVersion((version) => version + 1);
+                    }}
+                    className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-700"
+                  >
                     Request a Quote
                   </Link>
-                  <Link href={service.title.includes("Commercial") ? "/commercial" : service.title.includes("Residential") ? "/residential" : "#contact"} className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-rose-400 hover:text-rose-700">
+                  <Link href={service.title.includes("Commercial") ? "/commercial" : service.title.includes("Residential") ? "/residential" : service.title.includes("Airbnb") ? "/airbnb" : "#contact"} className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-rose-400 hover:text-rose-700">
                     Learn More
                   </Link>
                 </div>
-              </motion.article>
+              </article>
             );
           })}
         </div>
@@ -501,7 +429,7 @@ export default function Home() {
             </div>
             <form onSubmit={handleQuoteSubmit} className="rounded-[28px] border border-white/10 bg-white/10 p-5 backdrop-blur-xl">
               <div className="mb-4 h-2 rounded-full bg-white/10">
-                <div className="h-2 rounded-full bg-rose-400 transition-all" style={{ width: `${((quoteStep + 1) / 4) * 100}%` }} />
+                <div className={`h-2 rounded-full bg-rose-400 transition-all ${["w-1/4", "w-2/4", "w-3/4", "w-full"][quoteStep]}`} />
               </div>
               <div className="mb-4 text-sm text-rose-100">Step {quoteStep + 1} of 4 • {quoteSteps[quoteStep].title}</div>
 
@@ -526,12 +454,22 @@ export default function Home() {
                 </div>
               ) : null}
 
-              {quoteStep === 1 ? (
+                      {quoteStep === 1 ? (
                 <div className="grid gap-4 md:grid-cols-2">
-                  <label className="rounded-2xl border border-white/10 bg-slate-950/30 p-4 text-sm">
-                    <span className="mb-2 block font-medium">Bedrooms or rooms</span>
-                    <input className="w-full rounded-xl border border-white/10 bg-slate-950/50 px-3 py-2 text-white" value={quoteData.rooms} onChange={(event) => setQuoteData({ ...quoteData, rooms: event.target.value })} />
-                  </label>
+                          {quoteData.serviceType === "Residential" ? (
+                            <>
+                              <label className="rounded-2xl border border-white/10 bg-slate-950/30 p-4 text-sm">
+                                <span className="mb-2 block font-medium">Bedrooms</span>
+                                <input type="number" min="0" max="30" inputMode="numeric" className="w-full rounded-xl border border-white/10 bg-slate-950/50 px-3 py-2 text-white" value={quoteData.bedrooms} onChange={(event) => setQuoteData({ ...quoteData, bedrooms: event.target.value })} />
+                              </label>
+                              <label className="rounded-2xl border border-white/10 bg-slate-950/30 p-4 text-sm">
+                                <span className="mb-2 block font-medium">Bathrooms</span>
+                                <input type="number" min="0" max="30" inputMode="numeric" className="w-full rounded-xl border border-white/10 bg-slate-950/50 px-3 py-2 text-white" value={quoteData.bathrooms} onChange={(event) => setQuoteData({ ...quoteData, bathrooms: event.target.value })} />
+                              </label>
+                            </>
+                          ) : (
+                            <p className="self-center text-sm text-rose-100">For commercial spaces, include room count or floor area in your enquiry message.</p>
+                          )}
                   <label className="rounded-2xl border border-white/10 bg-slate-950/30 p-4 text-sm">
                     <span className="mb-2 block font-medium">Property size</span>
                     <select className="w-full rounded-xl border border-white/10 bg-slate-950/50 px-3 py-2 text-white" value={quoteData.size} onChange={(event) => setQuoteData({ ...quoteData, size: event.target.value })}>
@@ -587,25 +525,11 @@ export default function Home() {
               ) : null}
 
               {quoteStep === 3 ? (
-                <div className="grid gap-4">
-                  <label className="rounded-2xl border border-white/10 bg-slate-950/30 p-4 text-sm">
-                    <span className="mb-2 block font-medium">Preferred date</span>
-                    <input className="w-full rounded-xl border border-white/10 bg-slate-950/50 px-3 py-2 text-white" type="date" value={quoteData.date} onChange={(event) => setQuoteData({ ...quoteData, date: event.target.value })} />
-                  </label>
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <label className="rounded-2xl border border-white/10 bg-slate-950/30 p-4 text-sm">
-                      <span className="mb-2 block font-medium">Name</span>
-                      <input className="w-full rounded-xl border border-white/10 bg-slate-950/50 px-3 py-2 text-white" value={quoteData.name} onChange={(event) => setQuoteData({ ...quoteData, name: event.target.value })} />
-                    </label>
-                    <label className="rounded-2xl border border-white/10 bg-slate-950/30 p-4 text-sm">
-                      <span className="mb-2 block font-medium">Email</span>
-                      <input className="w-full rounded-xl border border-white/10 bg-slate-950/50 px-3 py-2 text-white" type="email" value={quoteData.email} onChange={(event) => setQuoteData({ ...quoteData, email: event.target.value })} />
-                    </label>
-                  </div>
-                  <label className="rounded-2xl border border-white/10 bg-slate-950/30 p-4 text-sm">
-                    <span className="mb-2 block font-medium">Phone</span>
-                    <input className="w-full rounded-xl border border-white/10 bg-slate-950/50 px-3 py-2 text-white" value={quoteData.phone} onChange={(event) => setQuoteData({ ...quoteData, phone: event.target.value })} />
-                  </label>
+                <div className="rounded-2xl border border-white/10 bg-slate-950/30 p-4 text-sm text-rose-50">
+                  <p className="font-semibold text-white">Your selected details</p>
+                  <p className="mt-2">{quoteData.serviceType} · {quoteData.propertyType}{quoteData.serviceType === "Residential" ? ` · ${quoteData.bedrooms} bedroom(s) · ${quoteData.bathrooms} bathroom(s)` : ""} · {quoteData.size} · {quoteData.frequency}</p>
+                  {quoteData.addOns.length ? <p className="mt-2">Extras: {quoteData.addOns.join(", ")}</p> : null}
+                  <p className="mt-3">Calculator range: {priceEstimate}. This is indicative only; the team will confirm pricing after reviewing your enquiry.</p>
                 </div>
               ) : null}
 
@@ -620,17 +544,16 @@ export default function Home() {
                   )}
                 </div>
               </div>
-              {quoteStatus === "success" ? <div className="mt-4 rounded-2xl border border-rose-300/30 bg-rose-500/10 p-3 text-sm text-rose-50">Your personalised quotation will be confirmed after reviewing your requirements.</div> : null}
             </form>
           </div>
         </div>
       </section>
 
-      <section id="gallery" className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
+      <section id="gallery" className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
         <div className="mb-10 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-rose-700">Before & after</p>
-            <h2 className="mt-2 text-3xl font-semibold text-slate-900 sm:text-4xl">Polished transformations, visible results</h2>
+            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-rose-700">Gallery</p>
+            <h2 className="mt-2 text-3xl font-semibold text-slate-900 sm:text-4xl">A closer look at our cleaning work</h2>
           </div>
           <div className="flex flex-wrap gap-2">
             {(["All", "Residential cleaning", "Commercial cleaning", "Deep cleaning", "Airbnb cleaning", "End-of-tenancy cleaning"] as const).map((filter) => (
@@ -640,81 +563,50 @@ export default function Home() {
             ))}
           </div>
         </div>
-        <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-          <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {filteredGallery.map((item) => {
-              const cardIndex = gallerySlideIndices[item.id] ?? 0;
+              const slideId = (index: number) => `gallery-${item.id}-slide-${index}`;
               return (
                 <div
                   key={item.title}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => {
-                      setSelectedGallery(item);
-                      setSliderPosition(50);
-                    }}
-                  onPointerDown={() => {
-                      setSelectedGallery(item);
-                      setSliderPosition(50);
-                    }}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" || event.key === " ") {
-                      setSelectedGallery(item);
-                      setSliderPosition(50);
-                    }
-                  }}
-                  className="group overflow-hidden rounded-[28px] border border-slate-200 bg-white text-left shadow-[0_20px_60px_-25px_rgba(15,23,42,0.2)] transition hover:border-rose-300"
+                  className="gallery-card relative overflow-hidden rounded-2xl border border-slate-200 bg-white text-left transition hover:border-rose-300"
                 >
-                  <div className="relative h-48 sm:h-56 md:h-64 w-full overflow-hidden bg-slate-100">
-                    <img src={item.images[cardIndex]} alt={`${item.title} slideshow image`} className="h-full w-full object-cover transition duration-300 group-hover:scale-105" />
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        setGallerySlideIndices((prev) => ({
-                          ...prev,
-                          [item.id]: (prev[item.id] - 1 + item.images.length) % item.images.length,
-                        }));
-                      }}
-                      onPointerDown={(event) => {
-                        // prevent parent handlers on touch devices
-                        event.stopPropagation();
-                      }}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-white/90 p-3 text-slate-900 shadow-sm transition hover:bg-white z-20"
-                      aria-label={`Previous image for ${item.title}`}
-                    >
-                      ‹
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        setGallerySlideIndices((prev) => ({
-                          ...prev,
-                          [item.id]: (prev[item.id] + 1) % item.images.length,
-                        }));
-                      }}
-                      onPointerDown={(event) => {
-                        event.stopPropagation();
-                      }}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-white/90 p-3 text-slate-900 shadow-sm transition hover:bg-white z-20"
-                      aria-label={`Next image for ${item.title}`}
-                    >
-                      ›
-                    </button>
-                    <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-2">
-                      {item.images.map((_, dotIndex) => (
-                        <span
-                          key={dotIndex}
-                          role="button"
-                          tabIndex={0}
-                          onClick={(e) => { e.stopPropagation(); setGallerySlideIndices((prev) => ({ ...prev, [item.id]: dotIndex })); }}
-                          onPointerDown={(e) => e.stopPropagation()}
-                          className={`h-3 w-3 rounded-full ${dotIndex === cardIndex ? "bg-rose-700" : "bg-white/80"}`}
+                  {item.images.map((image, index) => {
+                    const previousIndex = (index - 1 + item.images.length) % item.images.length;
+                    const nextIndex = (index + 1) % item.images.length;
+
+                    return (
+                      <Fragment key={image}>
+                        <input
+                          className="gallery-slide-input"
+                          type="radio"
+                          name={`gallery-${item.id}`}
+                          id={slideId(index)}
+                          aria-label={`${item.title}, image ${index + 1} of ${item.images.length}`}
+                          defaultChecked={index === 0}
                         />
-                      ))}
-                    </div>
-                  </div>
+                        <div className="gallery-slide relative h-52 w-full overflow-hidden bg-slate-100 sm:h-60">
+                          <img src={image} alt={`${item.title}, image ${index + 1}`} className="h-full w-full object-cover" />
+                          <label htmlFor={slideId(previousIndex)} className="gallery-arrow absolute left-3 top-1/2 -translate-y-1/2" aria-hidden="true">
+                            <ChevronLeft size={20} />
+                          </label>
+                          <label htmlFor={slideId(nextIndex)} className="gallery-arrow absolute right-3 top-1/2 -translate-y-1/2" aria-hidden="true">
+                            <ChevronRight size={20} />
+                          </label>
+                          <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-2">
+                            {item.images.map((_, dotIndex) => (
+                              <label
+                                key={dotIndex}
+                                htmlFor={slideId(dotIndex)}
+                                className={`gallery-dot ${index === dotIndex ? "is-current" : ""}`}
+                                aria-hidden="true"
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      </Fragment>
+                    );
+                  })}
                   <div className="p-4">
                     <p className="text-sm font-semibold uppercase tracking-[0.22em] text-rose-700">{item.category}</p>
                     <h3 className="mt-2 text-xl font-semibold text-slate-900">{item.title}</h3>
@@ -722,34 +614,10 @@ export default function Home() {
                 </div>
               );
             })}
-          </div>
-          <div className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-[0_20px_60px_-25px_rgba(15,23,42,0.2)]">
-            {selectedGallery ? (
-              <>
-                <div className="overflow-hidden rounded-[24px] bg-slate-100">
-                    <div className="relative h-[260px] sm:h-[420px] w-full" style={{ touchAction: 'manipulation' }}>
-                    <img src={selectedGallery.before} alt={`${selectedGallery.title} before`} className="absolute inset-0 h-full w-full object-cover" />
-                    <div className="absolute inset-0 overflow-hidden" style={{ width: `${sliderPosition}%` }}>
-                      <img src={selectedGallery.after} alt={`${selectedGallery.title} after`} className="h-full w-full object-cover" />
-                    </div>
-                    <div className="absolute inset-y-0 w-1 bg-white/70" style={{ left: `${sliderPosition}%` }} />
-                  </div>
-                  <input type="range" min="0" max="100" value={sliderPosition} onChange={(event) => setSliderPosition(Number(event.target.value))} className="w-full accent-rose-600" />
-                </div>
-                <p className="mt-4 text-sm font-semibold uppercase tracking-[0.22em] text-rose-700">{selectedGallery.category}</p>
-                <h3 className="mt-2 text-2xl font-semibold text-slate-900">{selectedGallery.title}</h3>
-                <p className="mt-3 text-lg text-slate-600">Our team focuses on delivering a spotless finish that is clear, bright and guest-ready.</p>
-              </>
-            ) : (
-              <div className="flex h-full items-center justify-center rounded-[24px] border border-dashed border-slate-300 p-10 text-center text-slate-600">
-                Select a project to preview the transformation.
-              </div>
-            )}
-          </div>
         </div>
       </section>
 
-      <section id="about" className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
+      <section id="about" className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
         <div className="grid gap-8 lg:grid-cols-[1fr_0.95fr] lg:items-center">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.3em] text-rose-700">Why choose us</p>
@@ -773,27 +641,12 @@ export default function Home() {
               ))}
             </div>
           </div>
-          <div className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_-25px_rgba(15,23,42,0.2)]">
-            <div className="grid gap-4 sm:grid-cols-2">
-              {[
-                { label: "Properties cleaned", value: "50+" },
-                { label: "Repeat customers", value: "96%" },
-                { label: "Commercial clients", value: "2" },
-                { label: "Areas covered", value: "10+" },
-              ].map((stat) => (
-                <div key={stat.label} className="rounded-2xl bg-slate-50 p-5">
-                  <p className="text-3xl font-semibold text-slate-900">{stat.value}</p>
-                  <p className="mt-2 text-sm text-slate-600">{stat.label}</p>
-                </div>
-              ))}
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 sm:p-8">
+            <div className="flex items-center gap-3 text-rose-700">
+              <Clock3 aria-hidden="true" size={20} />
+              <h3 className="font-semibold">Flexible booking windows</h3>
             </div>
-            <div className="mt-6 rounded-[24px] bg-gradient-to-br from-rose-50 to-slate-100 p-5">
-              <div className="flex items-center gap-3 text-rose-700">
-                <Clock3 size={20} />
-                <p className="font-semibold">Flexible booking windows and real-time support</p>
-              </div>
-              <p className="mt-2 text-slate-600">We tailor every quotation and cleaning plan around your schedule and property needs.</p>
-            </div>
+            <p className="mt-3 leading-7 text-slate-600">We tailor each quotation and cleaning plan around your schedule and property needs.</p>
           </div>
         </div>
       </section>
@@ -820,7 +673,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="reviews" className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
+      <section id="reviews" className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
         <div className="mb-10 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.3em] text-rose-700">Testimonials</p>
@@ -831,7 +684,7 @@ export default function Home() {
             <button onClick={nextTestimonial} className="rounded-full border border-slate-300 p-3 text-slate-700 transition hover:border-rose-400 hover:text-rose-700"><ChevronRight size={18} /></button>
           </div>
         </div>
-        <motion.div key={testimonialIndex} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="rounded-[32px] border border-slate-200 bg-gradient-to-br from-white to-rose-50 p-8 shadow-[0_20px_60px_-25px_rgba(15,23,42,0.2)] sm:p-10">
+        <div className="rounded-[32px] border border-slate-200 bg-gradient-to-br from-white to-rose-50 p-8 shadow-[0_20px_60px_-25px_rgba(15,23,42,0.2)] sm:p-10">
           <div className="flex flex-wrap items-center gap-3 text-amber-500">
             {Array.from({ length: testimonials[testimonialIndex].rating }).map((_, index) => (<Star key={index} size={18} fill="currentColor" />))}
           </div>
@@ -843,10 +696,10 @@ export default function Home() {
             </div>
             <div className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-rose-700 shadow-sm">Highly recommended</div>
           </div>
-        </motion.div>
+        </div>
       </section>
 
-      <section id="areas" className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
+      <section id="areas" className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
         <div className="grid gap-8 lg:grid-cols-[1fr_0.95fr]">
           <div className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_-25px_rgba(15,23,42,0.2)]">
             <p className="text-sm font-semibold uppercase tracking-[0.3em] text-rose-700">Service areas</p>
@@ -865,118 +718,52 @@ export default function Home() {
             </div>
             <h3 className="mt-3 text-2xl font-semibold">Find out if your area is covered</h3>
             <form onSubmit={handlePostcodeCheck} className="mt-6 space-y-4">
-              <input value={postcode} onChange={(event) => setPostcode(event.target.value)} placeholder="Enter postcode" className="w-full rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-white placeholder:text-slate-300" />
+              <label htmlFor="service-postcode" className="sr-only">UK postcode</label>
+              <input id="service-postcode" name="postcode" type="text" autoComplete="postal-code" required maxLength={8} pattern="(GIR ?0AA|[A-Za-z]{1,2}[0-9][A-Za-z0-9]?[ ]?[0-9][A-Za-z]{2})" aria-describedby="postcode-result" value={postcode} onChange={(event) => setPostcode(event.target.value)} placeholder="Enter postcode" className="w-full rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-white placeholder:text-slate-300" />
               <button type="submit" className="rounded-full bg-rose-500 px-5 py-3 font-semibold text-white transition hover:bg-rose-400">Check availability</button>
             </form>
-            <p className="mt-4 text-sm leading-7 text-slate-300">{postcodeMessage}</p>
+            <p id="postcode-result" aria-live="polite" className="mt-4 text-sm leading-7 text-slate-300">{postcodeMessage}</p>
           </div>
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
-        <div className="grid gap-8 lg:grid-cols-[0.95fr_1.05fr]">
-          <div className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_-25px_rgba(15,23,42,0.2)]">
-            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-rose-700">About us</p>
-            <h2 className="mt-2 text-3xl font-semibold text-slate-900 sm:text-4xl">Quality, consistency and customer care at the heart of everything we do</h2>
-            <p className="mt-4 text-lg leading-8 text-slate-600">
-              Hasmmat Cleaning Service Ltd is a trusted local provider of professional residential and commercial cleaning. We combine careful attention to detail with a warm, reliable service that gives property owners confidence from the first visit.
-            </p>
-            <div className="mt-6 flex flex-wrap gap-3">
-              {[
-                "Reliability",
-                "Integrity",
-                "Quality",
-                "Respect",
-                "Consistency",
-                "Customer care",
-              ].map((value) => (
-                <span key={value} className="rounded-full border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700">{value}</span>
-              ))}
-            </div>
-          </div>
-          <div className="rounded-[32px] border border-slate-200 bg-slate-50 p-8 shadow-[0_20px_60px_-25px_rgba(15,23,42,0.2)]">
-            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-rose-700">Contact</p>
-            <h2 className="mt-2 text-3xl font-semibold text-slate-900 sm:text-4xl">Book your free consultation</h2>
-            <div className="mt-6 space-y-3 text-slate-700">
-              <p className="flex items-center gap-3"><Phone size={18} className="text-rose-600" /> 07983818344</p>
-              <p className="flex items-center gap-3"><MessageCircle size={18} className="text-rose-600" /> Hasmmatcleaningservice@gmail.com</p>
-              <p className="flex items-center gap-3"><Clock3 size={18} className="text-rose-600" /> Mon–Sat • 8am–6pm</p>
-            </div>
-            <Link href="#contact" className="mt-6 inline-flex items-center rounded-full bg-slate-900 px-5 py-3 font-semibold text-white transition hover:bg-rose-700">Start your request</Link>
-          </div>
-        </div>
-      </section>
+      <EnquiryForm
+        id="contact"
+        key={`home-enquiry-${quotePrefillVersion}`}
+        initialValues={quotePrefill}
+        focusOnMount={quotePrefillVersion > 0}
+      />
 
-      <section id="contact" className="mx-auto max-w-7xl px-4 pb-24 sm:px-6 lg:px-8">
-        <div className="grid gap-8 lg:grid-cols-[0.95fr_1.05fr]">
-          <div className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_-25px_rgba(15,23,42,0.2)]">
-            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-rose-700">Contact us</p>
-            <h2 className="mt-2 text-3xl font-semibold text-slate-900 sm:text-4xl">Tell us about your property and we will follow up promptly</h2>
-            <p className="mt-4 leading-8 text-slate-600">We respond quickly to enquiries, provide honest guidance and never confirm availability until the request has been reviewed by our team.</p>
-            <div className="mt-6 space-y-3 text-slate-700">
-              <p className="flex items-center gap-3"><Phone size={18} className="text-rose-600" /> 07983818344</p>
-              <p className="flex items-center gap-3"><MessageCircle size={18} className="text-rose-600" /> Hasmmatcleaningservice@gmail.com</p>
-              <p className="flex items-center gap-3"><Clock3 size={18} className="text-rose-600" /> Open 7 days a week for estimates and support</p>
-            </div>
-          </div>
-          <form onSubmit={handleContactSubmit} className="rounded-[32px] border border-slate-200 bg-slate-950 p-8 text-white shadow-[0_20px_60px_-25px_rgba(15,23,42,0.2)]">
-            <div className="grid gap-4 md:grid-cols-2">
-              <label className="text-sm">
-                <span className="mb-2 block font-medium">Name</span>
-                <input className="w-full rounded-2xl border border-white/10 bg-white/10 px-3 py-3 text-white placeholder:text-slate-400" value={contactForm.name} onChange={(event) => setContactForm({ ...contactForm, name: event.target.value })} placeholder="Your name" />
-              </label>
-              <label className="text-sm">
-                <span className="mb-2 block font-medium">Email</span>
-                <input className="w-full rounded-2xl border border-white/10 bg-white/10 px-3 py-3 text-white placeholder:text-slate-400" type="email" value={contactForm.email} onChange={(event) => setContactForm({ ...contactForm, email: event.target.value })} placeholder="you@email.com" />
-              </label>
-              <label className="text-sm">
-                <span className="mb-2 block font-medium">Telephone number</span>
-                <input className="w-full rounded-2xl border border-white/10 bg-white/10 px-3 py-3 text-white placeholder:text-slate-400" value={contactForm.phone} onChange={(event) => setContactForm({ ...contactForm, phone: event.target.value })} placeholder="Phone" />
-              </label>
-              <label className="text-sm">
-                <span className="mb-2 block font-medium">Property type</span>
-                <select className="w-full rounded-2xl border border-white/10 bg-white/10 px-3 py-3 text-white" value={contactForm.propertyType} onChange={(event) => setContactForm({ ...contactForm, propertyType: event.target.value })}>
-                  <option value="Residential">Residential</option>
-                  <option value="Commercial">Commercial</option>
-                </select>
-              </label>
-            </div>
-            <label className="mt-4 block text-sm">
-              <span className="mb-2 block font-medium">Required service</span>
-              <input className="w-full rounded-2xl border border-white/10 bg-white/10 px-3 py-3 text-white placeholder:text-slate-400" value={contactForm.service} onChange={(event) => setContactForm({ ...contactForm, service: event.target.value })} placeholder="Regular cleaning" />
-            </label>
-            <label className="mt-4 block text-sm">
-              <span className="mb-2 block font-medium">Preferred date</span>
-              <input className="w-full rounded-2xl border border-white/10 bg-white/10 px-3 py-3 text-white" type="date" value={contactForm.date} onChange={(event) => setContactForm({ ...contactForm, date: event.target.value })} />
-            </label>
-            <label className="mt-4 block text-sm">
-              <span className="mb-2 block font-medium">Message</span>
-              <textarea className="min-h-32 w-full rounded-2xl border border-white/10 bg-white/10 px-3 py-3 text-white placeholder:text-slate-400" value={contactForm.message} onChange={(event) => setContactForm({ ...contactForm, message: event.target.value })} placeholder="Tell us more about your property and cleaning requirements." />
-            </label>
-            <button type="submit" className="mt-6 w-full sm:w-auto rounded-full bg-rose-500 px-5 py-3 font-semibold text-white transition hover:bg-rose-400">Submit enquiry</button>
-            {contactStatus === "success" ? <p className="mt-3 rounded-2xl border border-rose-400/20 bg-rose-500/10 p-3 text-sm text-rose-200">Thanks for your enquiry. Our team will follow up shortly.</p> : null}
-            {contactStatus === "error" ? <p className="mt-3 rounded-2xl border border-rose-400/40 bg-rose-500/10 p-3 text-sm text-rose-200">Please complete the required details before sending.</p> : null}
-          </form>
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-7xl px-4 pb-24 sm:px-6 lg:px-8">
+      <section className="mx-auto max-w-7xl px-4 pb-14 sm:px-6 lg:px-8">
         <div className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_-25px_rgba(15,23,42,0.2)]">
           <div className="mb-8 text-center">
             <p className="text-sm font-semibold uppercase tracking-[0.3em] text-rose-700">Frequently asked questions</p>
             <h2 className="mt-2 text-3xl font-semibold text-slate-900 sm:text-4xl">Helpful answers before you book</h2>
           </div>
           <div className="space-y-3">
-            {faqs.map((faq, index) => (
-              <div key={faq.question} className="rounded-2xl border border-slate-200 bg-slate-50">
-                <button className="flex w-full items-center justify-between px-5 py-4 text-left" onClick={() => setOpenFaq(openFaq === index ? null : index)}>
+            {faqs.map((faq) => (
+              <details key={faq.question} className="faq-disclosure rounded-2xl border border-slate-200 bg-slate-50">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-700">
                   <span className="font-semibold text-slate-900">{faq.question}</span>
-                  <ChevronDown className={`transition ${openFaq === index ? "rotate-180" : ""}`} />
-                </button>
-                {openFaq === index ? <p className="px-5 pb-5 text-slate-600">{faq.answer}</p> : null}
-              </div>
+                  <ChevronDown aria-hidden="true" className="faq-chevron shrink-0 transition-transform" />
+                </summary>
+                <p className="px-5 pb-5 text-slate-600">{faq.answer}</p>
+              </details>
             ))}
           </div>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-4 pb-12 sm:px-6 lg:px-8">
+        <div className="flex flex-col justify-between gap-5 border-y border-slate-200 py-7 sm:flex-row sm:items-center">
+          <div>
+            <p className="text-sm font-semibold uppercase text-rose-700">Accommodation booking</p>
+            <h2 className="mt-1 text-xl font-semibold text-slate-900">Looking to book accommodation?</h2>
+            <p className="mt-1 text-slate-600">Explore Hasmmat Residence booking options.</p>
+          </div>
+          <a href="https://hasmmatresidence.com" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 font-semibold text-slate-900 underline decoration-rose-600 underline-offset-4 hover:text-rose-700">
+            Visit Hasmmat Residence <ArrowRight aria-hidden="true" size={18} />
+          </a>
         </div>
       </section>
 
@@ -987,32 +774,8 @@ export default function Home() {
         Book a Cleaning Visit
       </Link>
 
-      <footer className="border-t border-slate-200 bg-slate-950 text-slate-300">
-        <div className="mx-auto grid max-w-7xl gap-8 px-4 py-12 sm:px-6 lg:grid-cols-[1.1fr_0.9fr_0.9fr] lg:px-8">
-          <div>
-            <p className="text-lg font-semibold tracking-[0.3em] text-white">HASMMAT CLEANING SERVICE LTD</p>
-            <p className="mt-3 max-w-md text-sm leading-7 text-slate-400">Professional residential and commercial cleaning for Leeds and surrounding areas.</p>
-            <p className="mt-4 text-sm text-slate-400">Company registration number: 15850067</p>
-          </div>
-          <div>
-            <h3 className="text-sm font-semibold uppercase tracking-[0.3em] text-white">Quick links</h3>
-            <div className="mt-4 space-y-2 text-sm">
-              <Link href="/residential" className="block transition hover:text-rose-300">Residential Cleaning</Link>
-              <Link href="/commercial" className="block transition hover:text-rose-300">Commercial Cleaning</Link>
-              <Link href="#about" className="block transition hover:text-rose-300">About Us</Link>
-              <Link href="#contact" className="block transition hover:text-rose-300">Contact</Link>
-            </div>
-          </div>
-          <div>
-            <h3 className="text-sm font-semibold uppercase tracking-[0.3em] text-white">Contact</h3>
-            <div className="mt-4 space-y-2 text-sm text-slate-400">
-              <p>Hasmmatcleaningservice@gmail.com</p>
-              <p>07983818344</p>
-              <p>Leeds service area</p>
-            </div>
-          </div>
-        </div>
-      </footer>
-    </main>
+      </main>
+      <PublicFooter />
+    </>
   );
 }

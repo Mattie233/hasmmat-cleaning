@@ -1,5 +1,8 @@
 import Link from "next/link";
 import { CheckCircle2, Sparkles, Bath, BedDouble, Sofa, Utensils, ArrowRight } from "lucide-react";
+import EnquiryForm from "../../components/public/EnquiryForm";
+import PublicFooter from "../../components/public/PublicFooter";
+import PublicHeader from "../../components/public/PublicHeader";
 
 const checklist = [
   {
@@ -24,7 +27,9 @@ const extras = ["Oven cleaning", "Carpet cleaning", "Window cleaning", "Laundry 
 
 export default function ResidentialPage() {
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(137,179,151,0.16),_transparent_55%)] text-slate-900">
+    <>
+      <PublicHeader />
+      <main className="public-page min-h-screen bg-white text-slate-900">
       <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
         <div className="grid gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
           <div>
@@ -105,21 +110,16 @@ export default function ResidentialPage() {
                 <div key={extra} className="rounded-2xl border border-white/10 bg-white/10 p-4 text-sm font-medium">{extra}</div>
               ))}
             </div>
-            <Link href="#contact" className="mt-8 inline-flex items-center rounded-full bg-rose-500 px-5 py-3 font-semibold text-white transition hover:bg-rose-400">
+            <Link href="#enquiry" className="mt-8 inline-flex items-center rounded-full bg-rose-500 px-5 py-3 font-semibold text-white transition hover:bg-rose-400">
               Request a quote <ArrowRight className="ml-2" size={18} />
             </Link>
           </div>
         </div>
       </section>
 
-      <section id="contact" className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
-        <div className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_-25px_rgba(15,23,42,0.2)]">
-          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-rose-700">Quotation request</p>
-          <h2 className="mt-2 text-3xl font-semibold text-slate-900">Let us tailor a plan around your home</h2>
-          <p className="mt-4 max-w-2xl text-lg text-slate-600">Tell us about your property, preferred frequency and any extras and our team will prepare a personalised quote.</p>
-          <Link href="/" className="mt-8 inline-flex items-center rounded-full bg-slate-900 px-5 py-3 font-semibold text-white transition hover:bg-rose-700">Return to homepage</Link>
-        </div>
-      </section>
-    </main>
+      <EnquiryForm id="enquiry" initialValues={{ cleaningService: "Regular residential cleaning", propertyType: "House" }} />
+      </main>
+      <PublicFooter />
+    </>
   );
 }

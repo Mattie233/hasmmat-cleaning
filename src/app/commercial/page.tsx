@@ -1,5 +1,8 @@
 import Link from "next/link";
 import { ArrowRight, Briefcase, Building2, CheckCircle2, Sparkles, Store } from "lucide-react";
+import EnquiryForm from "../../components/public/EnquiryForm";
+import PublicFooter from "../../components/public/PublicFooter";
+import PublicHeader from "../../components/public/PublicHeader";
 
 const sectors = [
   "Offices",
@@ -14,7 +17,9 @@ const sectors = [
 
 export default function CommercialPage() {
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(137,179,151,0.16),_transparent_55%)] text-slate-900">
+    <>
+      <PublicHeader />
+      <main className="public-page min-h-screen bg-white text-slate-900">
       <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
         <div className="grid gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
           <div>
@@ -108,12 +113,15 @@ export default function CommercialPage() {
             <p className="text-sm font-semibold uppercase tracking-[0.3em] text-rose-700">Book a commercial visit</p>
             <h2 className="mt-2 text-3xl font-semibold text-slate-900">Start with a no-obligation enquiry</h2>
             <p className="mt-4 text-lg text-slate-600">We will follow up with recommendations, pricing guidance and an initial service plan for your property.</p>
-            <Link href="/" className="mt-8 inline-flex items-center rounded-full bg-slate-900 px-5 py-3 font-semibold text-white transition hover:bg-rose-700">
-              Return to homepage <ArrowRight className="ml-2" size={18} />
+            <Link href="#enquiry" className="mt-8 inline-flex items-center rounded-full bg-slate-900 px-5 py-3 font-semibold text-white transition hover:bg-rose-700">
+              Request a commercial quote <ArrowRight className="ml-2" size={18} />
             </Link>
           </div>
         </div>
       </section>
-    </main>
+      <EnquiryForm id="enquiry" initialValues={{ cleaningService: "Commercial cleaning", propertyType: "Office" }} />
+      </main>
+      <PublicFooter />
+    </>
   );
 }

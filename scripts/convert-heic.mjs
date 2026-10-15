@@ -1,7 +1,8 @@
-const { promises: fs } = require('fs');
-const path = require('path');
-const { promisify } = require('util');
-const { execFile } = require('child_process');
+import { promises as fs } from "node:fs";
+import path from "node:path";
+import { promisify } from "node:util";
+import { execFile } from "node:child_process";
+
 const execFileAsync = promisify(execFile);
 
 async function findHeicFiles(dir) {
@@ -9,7 +10,7 @@ async function findHeicFiles(dir) {
   let entries;
   try {
     entries = await fs.readdir(dir, { withFileTypes: true });
-  } catch (error) {
+  } catch {
     return results;
   }
 
@@ -29,13 +30,20 @@ async function findHeicFiles(dir) {
 }
 
 async function convertFile(filePath) {
-  const outPath = filePath.replace(/\.[^.]+$/, '.jpg');
+  const outPath = filePath.replace(/\.[^.]+$/, ".jpg");
   if (filePath === outPath) {
     return;
   }
 
   try {
-    await execFileAsync('sips', ['-s', 'format', 'jpeg', filePath, '--out', outPath]);
+    await execFileAsync("sips", [
+      "-s",
+      "format",
+      "jpeg",
+      filePath,
+      "--out",
+      outPath,
+    ]);
     await fs.unlink(filePath);
     console.log(`Converted and removed: ${filePath} -> ${outPath}`);
   } catch (error) {
@@ -44,16 +52,13 @@ async function convertFile(filePath) {
   }
 }
 
-(async () => {
-  const publicDir = path.join(process.cwd(), 'public');
-  const heicFiles = await findHeicFiles(publicDir);
+const publicDir = path.join(process.cwd(), "public");
+const heicFiles = await findHeicFiles(publicDir);
 
-  if (heicFiles.length === 0) {
-    console.log('No HEIC files found in public/.');
-    return;
-  }
-
+if (heicFiles.length === 0) {
+  console.log("No HEIC files found in public/.");
+} else {
   for (const file of heicFiles) {
     await convertFile(file);
   }
-})();
+}

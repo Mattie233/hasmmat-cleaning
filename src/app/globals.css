@@ -42,6 +42,91 @@ body {
   animation: shimmer 2.8s linear infinite;
 }
 
+.gallery-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.gallery-slide-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.gallery-slide {
+  display: none;
+  grid-column: 1;
+  grid-row: 1;
+  aspect-ratio: 4 / 3;
+}
+
+.gallery-slide-input:checked + .gallery-slide {
+  display: block;
+}
+
+.gallery-slide-input:focus-visible + .gallery-slide {
+  outline: 3px solid #be123c;
+  outline-offset: -3px;
+}
+
+.gallery-arrow {
+  display: inline-flex;
+  width: 44px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background: rgb(255 255 255 / 92%);
+  color: #0f172a;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgb(15 23 42 / 18%);
+}
+
+.gallery-arrow:hover {
+  background: #fff;
+}
+
+.gallery-dot {
+  display: block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgb(255 255 255 / 90%);
+  border-radius: 9999px;
+  background: rgb(255 255 255 / 65%);
+  cursor: pointer;
+}
+
+.gallery-dot.is-current {
+  border-color: #be123c;
+  background: #be123c;
+}
+
+.faq-disclosure > summary::-webkit-details-marker {
+  display: none;
+}
+
+.public-mobile-nav > summary::-webkit-details-marker {
+  display: none;
+}
+
+.faq-disclosure[open] .faq-chevron {
+  transform: rotate(180deg);
+}
+
+.public-page [class*="rounded-[32px]"],
+.public-page [class*="rounded-[36px]"] {
+  border-radius: 1rem;
+}
+
+.public-page [class*="shadow-"] {
+  box-shadow: none;
+}
+
 /* Responsive media elements */
 img, video, svg {
   max-width: 100%;
