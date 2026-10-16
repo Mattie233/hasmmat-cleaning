@@ -20,14 +20,20 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 ## Enquiry delivery setup
 
-Public enquiry forms submit to the server-side `/api/enquiries` route, which forwards validated submissions to Getform. To enable delivery:
+Public quote and contact forms submit to the server-side `/api/enquiries` route. It validates the enquiry, sends an internal notification through Resend, then sends the customer a receipt acknowledgement. The acknowledgement explicitly states that no quote or booking has been agreed.
 
-1. Create a form in Getform and copy its HTTPS endpoint (`https://getform.io/f/...`).
-2. Set `GETFORM_ENDPOINT` in `.env.local` to that endpoint. Do not use a `NEXT_PUBLIC_` prefix or commit the configured value.
-3. Restart the development server and submit a test enquiry. The form reports success only after Getform accepts the request.
-4. Add the same server-only `GETFORM_ENDPOINT` value to the hosting provider's environment settings before manually deploying. Production environment values are not changed by this repository change.
+Configure these server-only variables in `.env.local` for local testing and in the hosting provider before a manual deployment:
 
-Without this setting, the API returns a configuration error and the form asks customers to contact the business directly. The route also uses a honeypot, request validation, a per-process rate limit and idempotency keys. For deployments with multiple server instances, add an edge/shared-store rate limit or enable the provider's spam controls; the in-memory limit is per instance.
+```env
+RESEND_API_KEY=re_your_resend_api_key
+ENQUIRY_FROM_EMAIL=quotes@hasmmatcleaning.com
+ENQUIRY_NOTIFICATION_TO=hasmmatcleaningservice@gmail.com
+ENQUIRY_REPLY_TO=hasmmatcleaningservice@gmail.com
+```
+
+Before sending real enquiries, verify `hasmmatcleaning.com` in Resend and ensure `ENQUIRY_REPLY_TO` is a verified, monitored inbox. The sender must remain on the verified `hasmmatcleaning.com` domain. Never use a `NEXT_PUBLIC_` prefix for the API key and never commit real credentials.
+
+If any setting is missing or invalid, the API reports that delivery is unavailable instead of showing success. The route keeps the existing honeypot, Zod validation, request-size cap, per-process rate limit and idempotency protection. For multi-instance hosting, configure a shared-store/edge rate limit as well; the in-memory limiter is per instance.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 

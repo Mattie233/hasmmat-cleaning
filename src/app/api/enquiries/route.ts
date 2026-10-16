@@ -1,3 +1,4 @@
+import { Resend } from "resend";
 import { z } from "zod";
 
 export const runtime = "nodejs";
@@ -6,23 +7,29 @@ export const dynamic = "force-dynamic";
 const UK_POSTCODE = /^(GIR 0AA|[A-Z]{1,2}[0-9][A-Z0-9]?\s?[0-9][A-Z]{2})$/i;
 const PHONE = /^[+\d][\d\s().-]{6,23}$/;
 const emptyToUndefined = (value: unknown) => value === "" || value == null ? undefined : value;
+const sanitizeSingleLine = (value: string) =>
+  value.normalize("NFC").replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim();
+const sanitizeMessage = (value: string) =>
+  value.normalize("NFC").replace(/\r\n?/g, "\n").replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, "").trim();
+const shortText = (minimum: number, maximum: number) =>
+  z.string().transform(sanitizeSingleLine).pipe(z.string().min(minimum).max(maximum));
 
 const quoteDetailsSchema = z.object({
   serviceType: z.enum(["Residential", "Commercial"]),
-  propertyType: z.string().trim().min(1).max(50),
+  propertyType: shortText(1, 50),
   bedrooms: z.number().int().min(0).max(30).optional(),
   bathrooms: z.number().int().min(0).max(30).optional(),
   size: z.enum(["Small", "Medium", "Large"]),
-  cleaningService: z.string().trim().min(2).max(80),
+  cleaningService: shortText(2, 80),
   frequency: z.enum(["One-off", "Weekly", "Fortnightly", "Monthly"]),
-  addOns: z.array(z.string().trim().min(1).max(60)).max(10),
-  estimatedRange: z.string().trim().min(1).max(60),
+  addOns: z.array(shortText(1, 60)).max(10),
+  estimatedRange: shortText(1, 60),
 }).strict();
 
 const enquirySchema = z.object({
-  name: z.string().trim().min(1).max(100),
-  email: z.string().trim().email().max(254),
-  phone: z.string().trim().regex(PHONE),
+  name: shortText(1, 100),
+  email: z.string().trim().email().max(254).refine((email) => !/[\r\n]/.test(email)),
+  phone: z.string().transform(sanitizeSingleLine).pipe(z.string().regex(PHONE)),
   cleaningService: z.enum([
     "Regular residential cleaning",
     "One-off cleaning",
@@ -39,10 +46,17 @@ const enquirySchema = z.object({
   bedrooms: z.preprocess((value) => value === "" || value == null ? undefined : Number(value), z.number().int().min(0).max(30).optional()),
   bathrooms: z.preprocess((value) => value === "" || value == null ? undefined : Number(value), z.number().int().min(0).max(30).optional()),
   frequency: z.enum(["One-off", "Weekly", "Fortnightly", "Monthly"]),
-  message: z.string().trim().max(2000),
+  message: z.string().transform(sanitizeMessage).pipe(z.string().max(2000)),
   quoteDetails: quoteDetailsSchema.optional(),
   website: z.string().max(200),
 }).strict();
+
+const emailConfigSchema = z.object({
+  apiKey: z.string().trim().min(1),
+  from: z.string().trim().email().refine((email) => email.toLowerCase().endsWith("@hasmmatcleaning.com")),
+  notificationTo: z.string().trim().email(),
+  replyTo: z.string().trim().email(),
+});
 
 type RateEntry = { count: number; resetAt: number };
 type SubmissionEntry = { state: "pending" | "accepted"; expiresAt: number };
@@ -83,28 +97,80 @@ function isRateLimited(address: string) {
   return entry.count > MAX_REQUESTS_PER_WINDOW;
 }
 
-function getGetformEndpoint() {
-  const configuredEndpoint = process.env.GETFORM_ENDPOINT;
-  if (!configuredEndpoint) return null;
+function escapeHtml(value: string) {
+  return value.replace(/[&<>"']/g, (character) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  })[character] ?? character);
+}
 
-  try {
-    const endpoint = new URL(configuredEndpoint);
-    if (
-      endpoint.protocol !== "https:" ||
-      !["getform.io", "www.getform.io"].includes(endpoint.hostname) ||
-      !/^\/f\/[A-Za-z0-9_-]+\/?$/.test(endpoint.pathname)
-    ) {
-      return null;
-    }
-    return endpoint;
-  } catch {
-    return null;
+function getEmailConfig() {
+  const config = emailConfigSchema.safeParse({
+    apiKey: process.env.RESEND_API_KEY,
+    from: process.env.ENQUIRY_FROM_EMAIL,
+    notificationTo: process.env.ENQUIRY_NOTIFICATION_TO,
+    replyTo: process.env.ENQUIRY_REPLY_TO,
+  });
+
+  return config.success ? config.data : null;
+}
+
+function buildNotification(enquiry: z.infer<typeof enquirySchema>) {
+  const quoteDetails = enquiry.quoteDetails;
+  const details: [string, string][] = [
+    ["Name", enquiry.name],
+    ["Email", enquiry.email],
+    ["Telephone", enquiry.phone],
+    ["Service", enquiry.cleaningService],
+    ["Property type", enquiry.propertyType],
+    ["Postcode", enquiry.postcode],
+    ["Frequency", enquiry.frequency],
+    ["Preferred date", enquiry.preferredDate ?? "Not specified"],
+    ["Bedrooms", enquiry.bedrooms === undefined ? "Not supplied" : String(enquiry.bedrooms)],
+    ["Bathrooms", enquiry.bathrooms === undefined ? "Not supplied" : String(enquiry.bathrooms)],
+    ["Additional requirements", enquiry.message || "None supplied"],
+  ];
+
+  if (quoteDetails) {
+    details.push(
+      ["Calculator service type", quoteDetails.serviceType],
+      ["Calculator property type", quoteDetails.propertyType],
+      ["Calculator property size", quoteDetails.size],
+      ["Calculator service", quoteDetails.cleaningService],
+      ["Calculator frequency", quoteDetails.frequency],
+      ["Calculator extras", quoteDetails.addOns.join(", ") || "None"],
+      ["Indicative calculator range", quoteDetails.estimatedRange],
+    );
   }
+
+  const text = details.map(([label, value]) => `${label}: ${value}`).join("\n");
+  const rows = details.map(([label, value]) => `
+    <tr>
+      <th align="left" style="padding:8px 12px;border-bottom:1px solid #e2e8f0;color:#475569;font-weight:600;vertical-align:top">${escapeHtml(label)}</th>
+      <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;color:#0f172a">${escapeHtml(value).replace(/\n/g, "<br>")}</td>
+    </tr>`).join("");
+
+  return {
+    text,
+    html: `<div style="font-family:Arial,sans-serif;color:#0f172a;max-width:680px;margin:0 auto"><div style="background:#881337;padding:20px 24px;color:#fff"><p style="margin:0;font-size:12px;letter-spacing:1px;text-transform:uppercase">Hasmmat Cleaning</p><h1 style="margin:8px 0 0;font-size:22px">New quote enquiry</h1></div><table role="presentation" style="width:100%;border-collapse:collapse;margin-top:16px">${rows}</table><p style="margin-top:20px;font-size:12px;color:#64748b">Submitted through the Hasmmat Cleaning website.</p></div>`,
+  };
+}
+
+function buildAcknowledgement(name: string) {
+  const firstName = escapeHtml(name.split(" ")[0] || "there");
+  return {
+    subject: "We’ve received your cleaning enquiry",
+    text: `Hello ${name},\n\nThank you for contacting Hasmmat Cleaning. We have received your enquiry and our team will review your requirements before getting back to you.\n\nThis email confirms receipt only. It is not a quotation, confirmed availability, or a cleaning booking. Your quote and any booking will only be agreed after our team has reviewed the request and confirmed the details with you.\n\nHasmmat Cleaning Service`,
+    html: `<div style="font-family:Arial,sans-serif;color:#0f172a;background:#f8fafc;padding:32px 16px"><div style="max-width:560px;margin:0 auto;background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden"><div style="background:#881337;padding:22px 28px;color:#fff"><p style="margin:0;font-size:12px;letter-spacing:1px;text-transform:uppercase">Hasmmat Cleaning</p></div><div style="padding:28px"><h1 style="margin:0 0 16px;font-size:22px">We’ve received your enquiry</h1><p style="line-height:1.6">Hello ${firstName},</p><p style="line-height:1.6">Thank you for contacting Hasmmat Cleaning. Our team has received your enquiry and will review your requirements before getting back to you.</p><div style="margin:20px 0;padding:16px;border-left:3px solid #be123c;background:#fff1f2"><strong>This is confirmation of receipt only.</strong><p style="margin:8px 0 0;line-height:1.6">It is not an agreed quotation, confirmed availability, or a cleaning booking. We will confirm a quote and any booking with you separately after reviewing your request.</p></div><p style="margin:24px 0 0;line-height:1.6">Kind regards,<br><strong>Hasmmat Cleaning Service</strong></p></div></div></div>`,
+  };
 }
 
 export async function POST(request: Request) {
-  const endpoint = getGetformEndpoint();
-  if (!endpoint) return jsonResponse({ ok: false, code: "not_configured" }, 503);
+  const emailConfig = getEmailConfig();
+  if (!emailConfig) return jsonResponse({ ok: false, code: "not_configured" }, 503);
 
   const address = getClientAddress(request) ?? "unknown";
   if (isRateLimited(address)) {
@@ -149,22 +215,41 @@ export async function POST(request: Request) {
   if (existingSubmission?.state === "pending") return jsonResponse({ ok: false, code: "already_processing" }, 409);
   submissionEntries.set(idempotencyKey, { state: "pending", expiresAt: now + IDEMPOTENCY_WINDOW_MS });
 
-  const formData = new FormData();
-  const { quoteDetails, ...enquiry } = parsed.data;
-  for (const [key, value] of Object.entries(enquiry)) {
-    if (value !== undefined && value !== "") formData.append(key, String(value));
-  }
-  if (quoteDetails) formData.append("quoteDetails", JSON.stringify(quoteDetails));
-
+  const resend = new Resend(emailConfig.apiKey);
+  const from = `Hasmmat Cleaning <${emailConfig.from}>`;
+  const notification = buildNotification(parsed.data);
+  const acknowledgement = buildAcknowledgement(parsed.data.name);
   try {
-    const providerResponse = await fetch(endpoint, {
-      method: "POST",
-      body: formData,
-      cache: "no-store",
+    const notificationResult = await resend.emails.send({
+      from,
+      to: emailConfig.notificationTo,
+      replyTo: emailConfig.replyTo,
+      subject: "New Hasmmat Cleaning quote enquiry",
+      text: notification.text,
+      html: notification.html,
+    }, {
+      idempotencyKey: `${idempotencyKey}-notification`,
       signal: AbortSignal.timeout(12_000),
     });
 
-    if (!providerResponse.ok) {
+    if (notificationResult.error) {
+      submissionEntries.delete(idempotencyKey);
+      return jsonResponse({ ok: false, code: "provider_error" }, 502);
+    }
+
+    const acknowledgementResult = await resend.emails.send({
+      from,
+      to: parsed.data.email,
+      replyTo: emailConfig.replyTo,
+      subject: acknowledgement.subject,
+      text: acknowledgement.text,
+      html: acknowledgement.html,
+    }, {
+      idempotencyKey: `${idempotencyKey}-acknowledgement`,
+      signal: AbortSignal.timeout(12_000),
+    });
+
+    if (acknowledgementResult.error) {
       submissionEntries.delete(idempotencyKey);
       return jsonResponse({ ok: false, code: "provider_error" }, 502);
     }
