@@ -87,11 +87,11 @@ const galleryItems = [
     before: "/images/res7.jpg",
     after: "/images/res8.jpg",
     images: [
-      "/images/res1.jpg",
-      "/images/res2.jpg",
-      "/images/res3.jpg",
-      "/images/res4.jpg",
-      "/images/res6.jpg",
+      "/images/gallery-res-1.jpg",
+      "/images/gallery-res-2.jpg",
+      "/images/gallery-res-3.jpg",
+      "/images/gallery-res-4.jpg",
+      "/images/gallery-res-5.jpg",
 
     ],
   },
@@ -113,15 +113,15 @@ const galleryItems = [
     before: "/images/airbnb-2.jpg",
     after: "/images/airbnb-1.jpg",
     images: [
-      "/images/airbnb-1.jpg",
-      "/images/airbnb-2.jpg",
-      "/images/air.jpg",
-      "/images/image0.jpeg",
-      "/images/image1.jpeg",
-      "/images/image7.jpeg",
-      "/images/image10.jpeg",
-      "/images/IMAGE11.jpg",
-      "/images/Image12.jpg",
+      "/images/gallery-airbnb-1.jpg",
+      "/images/gallery-airbnb-2.jpg",
+      "/images/gallery-airbnb-3.jpg",
+      "/images/gallery-airbnb-4.jpg",
+      "/images/gallery-airbnb-5.jpg",
+      "/images/gallery-airbnb-6.jpg",
+      "/images/gallery-airbnb-7.jpg",
+      "/images/gallery-airbnb-8.jpg",
+      "/images/gallery-airbnb-9.jpg",
     ],
   },
   {
@@ -131,10 +131,10 @@ const galleryItems = [
     before: "/images/eot2.jpg",
     after: "/images/eot1.jpg",
     images: [
-      "/images/eot1.jpg",
-      "/images/eot2.jpg",
-      "/images/eot3.jpg",
-      "/images/eot4.jpg",
+      "/images/gallery-eot-1.jpg",
+      "/images/gallery-eot-2.jpg",
+      "/images/gallery-eot-3.jpg",
+      "/images/gallery-eot-4.jpg",
 
 
     ],
@@ -219,18 +219,6 @@ const serviceAreas = [
   "White Rose",
 ];
 
-const postcodeServiceAreas = [
-  { district: "LS11", areas: ["Beeston", "Holbeck", "White Rose"] },
-  { district: "LS12", areas: ["Armley"] },
-  { district: "LS13", areas: ["Bramley"] },
-  { district: "LS16", areas: ["Cookridge"] },
-  { district: "WF17", areas: ["Batley"] },
-  { district: "YO8", areas: ["Selby"] },
-  { district: "LS1", areas: ["Leeds City Centre"] },
-  { district: "LS2", areas: ["Leeds City Centre"] },
-  { district: "LS6", areas: ["Headingley"] },
-];
-
 export default function Home() {
   const [activeFilter, setActiveFilter] = useState("All");
   const [testimonialIndex, setTestimonialIndex] = useState(0);
@@ -300,13 +288,13 @@ export default function Home() {
       return;
     }
 
-    const matchingArea = postcodeServiceAreas.find(({ district }) => normalized.startsWith(district));
-    if (matchingArea) {
-      setPostcodeMessage(`We list service in ${matchingArea.areas.join(", ")} (${matchingArea.district}). Contact us to confirm availability at your exact address.`);
+    const outwardCode = normalized.match(/^(.+?)\d[A-Z]{2}$/)?.[1];
+    if (outwardCode?.startsWith("LS")) {
+      setPostcodeMessage("We list coverage across LS postcodes. Contact us to confirm availability at your exact address.");
       return;
     }
 
-    setPostcodeMessage("This postcode is outside the districts listed on our site. Please contact us to confirm whether we can serve your address.");
+    setPostcodeMessage("We currently list coverage for LS postcodes only. Please contact us to check whether we can serve your address.");
   };
 
   const nextTestimonial = () => {
@@ -585,8 +573,8 @@ export default function Home() {
                           aria-label={`${item.title}, image ${index + 1} of ${item.images.length}`}
                           defaultChecked={index === 0}
                         />
-                        <div className="gallery-slide relative h-52 w-full overflow-hidden bg-slate-100 sm:h-60">
-                          <img src={image} alt={`${item.title}, image ${index + 1}`} className="h-full w-full object-cover" />
+                        <div className="gallery-slide relative w-full overflow-hidden bg-slate-100">
+                          <img src={image} alt={`${item.title}, image ${index + 1}`} className="h-full w-full object-contain" />
                           <label htmlFor={slideId(previousIndex)} className="gallery-arrow absolute left-3 top-1/2 -translate-y-1/2" aria-hidden="true">
                             <ChevronLeft size={20} />
                           </label>
